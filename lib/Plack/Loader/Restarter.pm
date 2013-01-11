@@ -36,11 +36,12 @@ sub _fork_and_start {
 }
 
 sub _kill_child {
-    my $self = shift;
+    my($self, $signal) = @_;
+    $signal ||= 'TERM';
 
     my $pid = $self->{pid} or return;
-    warn "Killing the existing server (pid:$pid)\n";
-    kill 'TERM' => $pid;
+    warn "Killing the existing server (pid:$pid, signal:$signal)\n";
+    kill $signal => $pid;
     waitpid($pid, 0);
 }
 
@@ -59,6 +60,7 @@ sub run {
     my $watcher = Filesys::Notify::Simple->new($self->{watch});
     warn "Watching @{$self->{watch}} for file updates.\n";
     local $SIG{TERM} = sub { $self->_kill_child; exit(0); };
+    local $SIG{HUP}  = sub { $self->_kill_child('HUP'); exit(0); };
 
     while (1) {
         my @restart;
